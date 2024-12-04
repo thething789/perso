@@ -1,0 +1,64 @@
+function Get-AllItem {
+    param (
+        [string]$CsvPath
+    )
+    # Importer le CSV
+    $Csv = Import-Csv -Path $CsvPath -Delimiter ";"
+    $ListeArticle = @()
+
+    foreach($article in $Csv){
+        $ListeArticle += [PSCustomObject]@{
+            Article     = $article.Article
+            CDis = $article.CDis
+        }
+    }
+
+    return $ListeArticle
+}
+
+
+function Group-ItemByBaseName {
+    param (
+        [array]$Item
+    )
+
+    # Initialisation de la table de hachage pour regrouper les appareils
+    $GroupedItem = @{}
+
+    # Grouper les appareils par leur nom principal jusqu'à la première occurrence d'un chiffre
+    foreach ($Item in $Item) {
+        $Name = $Item.Article
+        $ItemID = $Item.CDis
+
+        if (-not $Name) { continue }
+
+        # Identifier le nom principal en excluant les parties incrémentées (exemple : "-02")
+        $BaseName = $Name
+
+        # Initialiser le tableau si la clé n'existe pas encore
+        if (-not $GroupedItem.ContainsKey($BaseName)) {
+            $GroupedItem[$BaseName] = @()
+        }
+
+        # Ajouter l'appareil au groupe correspondant
+        $GroupedItem[$BaseName] += [PSCustomObject]@{
+            CDis = $ItemID
+        }
+    }
+
+    return $GroupedItem
+}
+
+
+
+function Main {
+    param (
+        [string]$CsvPath 
+    )
+
+    $AllItem = Get-AllItem -CsvPath $CsvPath
+    $GroupItem = Group-ItemByBaseName -Item $AllItem
+
+
+    $GroupItem | Out-GridView
+}
