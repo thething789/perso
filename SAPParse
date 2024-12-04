@@ -22,17 +22,15 @@ function Group-ItemByBaseName {
         [array]$Item
     )
 
-    # Initialisation de la table de hachage pour regrouper les appareils
+    # Initialisation de la table de hachage pour regrouper les articles
     $GroupedItem = @{}
 
-    # Grouper les appareils par leur nom principal jusqu'à la première occurrence d'un chiffre
+    # Grouper les articles
     foreach ($Item in $Item) {
         $Name = $Item.Article
         $ItemID = $Item.CDis
 
         if (-not $Name) { continue }
-
-        # Identifier le nom principal en excluant les parties incrémentées (exemple : "-02")
         $BaseName = $Name
 
         # Initialiser le tableau si la clé n'existe pas encore
@@ -40,7 +38,7 @@ function Group-ItemByBaseName {
             $GroupedItem[$BaseName] = @()
         }
 
-        # Ajouter l'appareil au groupe correspondant
+        # Ajouter l'article au groupe correspondant
         $GroupedItem[$BaseName] += [PSCustomObject]@{
             CDis = $ItemID
         }
