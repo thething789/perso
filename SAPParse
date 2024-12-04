@@ -6,57 +6,74 @@ function Get-AllItem {
     $Csv = Import-Csv -Path $CsvPath -Delimiter ";"
     $ListeArticle = @()
 
-    foreach($article in $Csv){
+    foreach ($article in $Csv) {
         $ListeArticle += [PSCustomObject]@{
-            Article     = $article.Article
-            CDis = $article.CDis
+            Article = $article.Article
+            CDIs    = [int]$article.CDis
         }
     }
 
     return $ListeArticle
 }
 
-
-function Group-ItemByBaseName {
+function Check-MandatoryCDIs {
     param (
-        [array]$Item
+        [array]$Item,
+        [array]$MandatoryValues
     )
 
-    # Initialisation de la table de hachage pour regrouper les articles
-    $GroupedItem = @{}
+    $Item = $AllItem
+    $MandatoryValues = $MandatoryValues
+    $Result = @()
 
-    # Grouper les articles
-    foreach ($Item in $Item) {
-        $Name = $Item.Article
-        $ItemID = $Item.CDis
+    # Grouper les articles par leur nom
+    $GroupedByArticle = $Item | Group-Object -Property Article
 
-        if (-not $Name) { continue }
-        $BaseName = $Name
+    foreach ($group in $GroupedByArticle) {
+        $Article = $group.Name
+        $ArticleItems = $group.Group
 
-        # Initialiser le tableau si la clé n'existe pas encore
-        if (-not $GroupedItem.ContainsKey($BaseName)) {
-            $GroupedItem[$BaseName] = @()
-        }
-
-        # Ajouter l'article au groupe correspondant
-        $GroupedItem[$BaseName] += [PSCustomObject]@{
-            CDis = $ItemID
+        foreach ($value in $MandatoryValues) {
+            $FoundItem = $ArticleItems | Where-Object { $_.CDIs -eq $value }
+            if ($FoundItem) {
+                $Result += [PSCustomObject]@{
+                    Article = $Article
+                    CDIs    = $value
+                    Status  = "Present"
+                }
+            } else {
+                $Result += [PSCustomObject]@{
+                    Article = $Article
+                    CDIs    = $value
+                    Status  = "Manquant"
+                }
+            }
         }
     }
 
-    return $GroupedItem
+    return $Result
 }
-
-
 
 function Main {
     param (
-        [string]$CsvPath 
+        [string]$CsvPath
     )
 
+    # Définir les valeurs obligatoires
+    $MandatoryCDIs = @(10, 20, 30)
+
+    # Charger tous les éléments depuis le fichier CSV
     $AllItem = Get-AllItem -CsvPath $CsvPath
-    $GroupItem = Group-ItemByBaseName -Item $AllItem
 
+    # Vérifier les valeurs obligatoires pour chaque article
+    $CheckResult = Check-MandatoryCDIs -Item $AllItem -MandatoryValues $MandatoryCDIs
 
-    $GroupItem | Out-GridView
+    # Afficher les résultats
+    $CheckResult | Out-GridView -Title "Vérification des CDIs obligatoires par article"
+
+    return $CheckResult
 }
+
+# Exemple d'exécution
+$Sortie = Main -CsvPath "PATH"
+$SortieCsv = Export-Csv -Delimiter ";" -Path "SORTIE_CSV" -NoTypeInformation 
